@@ -1,14 +1,18 @@
 from django.shortcuts import render
-from rest_framework import generics, status
+from rest_framework import generics, status, permissions
 from rest_framework.views import APIView
 from .models import Client,Project
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
+from rest_framework.authtoken.models import Token
 from .serializer import (ClientGetSerializer, clientPostSerializer, 
                          SingleClientSerielizer, clientUpdateSerializer, 
                          ProjectSerializer, ProjectGetSerializer, 
                          ProjectPostSerializer, 
                          UserSerializer)
+from django.contrib.auth.models import User
+from django.contrib.auth.hashers import make_password
+from django.contrib.auth import authenticate
 # Create your views here.
 
 
@@ -139,6 +143,7 @@ class ProjectGetRetrive(APIView):
     
 
 
+
 @api_view(["DELETE"])
 def delete_project(request,pk):
     if request.method == "DELETE":
@@ -151,5 +156,77 @@ def delete_project(request,pk):
             project.delete()
             return Response({"Successfull":f"Data is deleted {project}"}, status=status.HTTP_204_NO_CONTENT)
         return Response({"error":"Some thing wen wrong"},status=status.HTTP_400_BAD_REQUEST)
+    
+
+class ResgisterView(APIView):
+    permission_classes = [permissions.AllowAny]
+    def post(self,request):
+    # if request.method == 'POST':
+      username = request.data.get('username')
+      email = request.data.get('email')
+      password = request.data.get('password')
+      if User.objects.filter(username=username).exists():
+          return Response({"error":"Username already exist"},status=status.HTTP_400_BAD_REQUEST)
+      
+      if User.objects.filter(email=email).exists():
+          return Response({"error":"Email already exists"},status=status.HTTP_400_BAD_REQUEST)
+      
+      user = User.objects.create(username=username, email=email, password=make_password(password))
+      user.save()
+      return Response({"messgae":"User created successfully"}, status=status.HTTP_201_CREATED)
+    
+
+
+
+
+class LoginView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        username = request.data.get('username')
+        password = request.data.get('password')
+
+        user = authenticate(username=username, password=password)
+
+        if user is not None:
+            token, created = Token.objects.get_or_create(user=user)
+            return Response({"token":token.key}, status=status.HTTP_200_OK)
+        else:
+            return Response({"error":"Invalid credentials."}, status=status.HTTP_400_BAD_REQUEST)
+        
+
+@api_view(['GET'])
+def user_view(request,pk=None):
+    if request.method == "GET":
+        try:
+            user = User.objects.get(pk=pk)
+        except User.DoesNotExist:
+            return Response({"error":"data is not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        user = User.objects.all()
+        serializer = UserSerializer(User)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
+
+class UserView(APIView):
+    def get(self,request, pk=None):
+        if pk:
+            try:
+                user = User.objects.get(pk=pk)
+            except User.DoesNotExist:
+                return Response({"error":"data is not found"}, status=status.HTTP_404_NOT_FOUND)
+            
+            serializer = UserSerializer(user)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+        user = User.objects.all()
+        serializer = UserSerializer(user,many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    
+
+
+
+
 
 

@@ -2,6 +2,13 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
 
+
+# class Register(models.Model):
+#     username = models.CharField(max_length=100)
+#     email = models.EmailField(max_length=100, null=False)
+#     password = models.CharField(max_length=100, min_length=8)
+#     conf_password = models.CharField(max_length=100, min_length=8)
+
 # Create your models here.
 class Client(models.Model):
     client_name = models.CharField(max_length=255)
@@ -24,3 +31,5 @@ class Project(models.Model):
 
     def __str__(self):
         return self.project_name
+
+
